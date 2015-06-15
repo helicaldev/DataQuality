@@ -9,6 +9,7 @@ import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 
 import org.apache.commons.dbutils.DbUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,7 +58,7 @@ public class DataSetResource {
 	public JSONObject getResultSet(String data) {
 		Map<String, String> confQueryMap=null;	
 		confQueryMap=ConfigurationFileReader.getMapFromPropertiesFile(new File(applicationProperties.getSolutionDirectory()+File.separator+"System"+File.separator+"DQQuery.conf"));
-		
+		logger.debug("called from getResultSet with data "+data);
 		JSONObject requestParameterJson = (JSONObject) JSONSerializer.toJSON(data);
 		int count=1;
 		Connection connections = connectionProvider.getConnection("jdbc/dqDatabase");
@@ -68,17 +69,34 @@ public class DataSetResource {
 		
 		logger.debug("Returning json from query configuration : "+confQueryMap);
 		
-				
+		JSONObject parameterJsonObject = (JSONObject) JSONSerializer.toJSON(data);
+		
 		if (count == 1) {
 			int mapId = requestParameterJson.getInt("map_id");
 			
 			String query=""; 
 			Object query1= confQueryMap.get("query_"+mapId);
 			query=query1.toString();
-			
-			
+			if(query.contains("${"))
+			{
+				int parameterCount=StringUtils.countMatches(query, "$");
+				for(int param=1; param<=parameterCount; param++)
+				{
+					String paramName=confQueryMap.get("param_"+mapId+"_"+param);
+					String replace="\"${"+paramName+"}\"";
+					String paramFromJson=parameterJsonObject.getString(paramName);
+					if(paramFromJson.contains("["))
+					{
+						paramFromJson=paramFromJson.replaceAll("\\[", "").replaceAll("\\]","");
+						paramFromJson=paramFromJson.replaceAll("\"", "'");
+					}
+					query=query.replace(replace,paramFromJson);
+				}
+				
+			}
 
 			JDBCDriver jdbcDriver= new JDBCDriver();
+			logger.debug("Sending Query from getResultSet after getting parameterss from DQQUery.conf file : "+query);
 			jsonData =jdbcDriver.getJSONData(connections, query, applicationProperties);
 					
 			

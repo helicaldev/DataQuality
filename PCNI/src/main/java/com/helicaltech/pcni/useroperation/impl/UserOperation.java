@@ -50,7 +50,7 @@ public class UserOperation {
 	
 	public String saveUser(JSONObject formData,Connection connection)
 	{
-		String createUserQuery="insert into t_pcni_users(userName,password,emailAddress,enabled) values('"+formData.getString("username")+"', '"+
+		String createUserQuery="insert into h_users(userName,password,emailAddress,enabled) values('"+formData.getString("username")+"', '"+
 		formData.getString("password")+"', '"+formData.getString("email")+"', '"+formData.getString("status")+"');";
 		
 		IJdbcDao jdbc= ApplicationContextAccessor.getBean(IJdbcDao.class);
@@ -61,7 +61,7 @@ public class UserOperation {
 		
 		if(result.equals("success"))
 		{
-			String idJSON = jdbc.query(connection, "SELECT id FROM t_pcni_users WHERE username='"+formData.getString("username")+"' AND password='"+formData.getString("password")+"' AND emailAddress='"+formData.getString("email").trim()+"';");
+			String idJSON = jdbc.query(connection, "SELECT id FROM h_users WHERE username='"+formData.getString("username")+"' AND password='"+formData.getString("password")+"' AND emailAddress='"+formData.getString("email").trim()+"';");
 			String lastInsertedId = null;
 			if(idJSON != null)
 			{
@@ -114,7 +114,7 @@ public class UserOperation {
 		if(updateQuery.length() >= 1)
 		{
 			
-			String updataTableQuery = "UPDATE t_pcni_users SET "+updateQuery+" WHERE id="+id+";";
+			String updataTableQuery = "UPDATE h_users SET "+updateQuery+" WHERE id="+id+";";
 			
 			try
 			{
@@ -182,7 +182,7 @@ public class UserOperation {
 		{
 		
 			IJdbcDao jdbc= ApplicationContextAccessor.getBean(IJdbcDao.class);
-			String getUserList= jdbc.query(connection, "select username from t_pcni_users where enabled='Y'");
+			String getUserList= jdbc.query(connection, "select username from h_users where enabled='Y'");
 			JSONObject jsonObject = (JSONObject) JSONSerializer.toJSON(getUserList);
 			JSONArray jsonArray = new JSONArray();
 			jsonArray= jsonObject.getJSONArray("data");
@@ -212,8 +212,8 @@ public class UserOperation {
 		{
 			IJdbcDao jdbc= ApplicationContextAccessor.getBean(IJdbcDao.class);
 
-			//	String searchUserQuery="select id,username,password,emailAddress from t_pcni_users where id="+id;
-			String searchUserQuery="SELECT u.id,u.username,u.password, u.enabled, u.emailAddress, r.role_name FROM t_pcni_users u, role r, user_role ur WHERE ur.user_id=u.id"+
+			//	String searchUserQuery="select id,username,password,emailAddress from h_users where id="+id;
+			String searchUserQuery="SELECT u.id,u.username,u.password, u.enabled, u.emailAddress, r.role_name FROM h_users u, role r, user_role ur WHERE ur.user_id=u.id"+
 			" and ur.role_id=r.id and u.id="+id+";";
 			String getUserList= jdbc.query(connection,searchUserQuery);
 			JSONObject jsonObject = (JSONObject) JSONSerializer.toJSON(getUserList);

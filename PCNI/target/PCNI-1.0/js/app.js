@@ -543,7 +543,9 @@ $(document).ready(function() {
               filename: file.name
             });
             date = moment(file.rundate, 'YYYY-MM-DD').format('MM/DD/YYYY');
-            row.append(column.clone().append(link2)).append(column.clone().append(date));
+            var ext = file.resultfile.split(".");
+            ext = ext.pop();
+            row.append(column.clone().append(link2)).append(column.clone().append(ext.toUpperCase())).append(column.clone().append(date));
             list.append(row);
           }
         }

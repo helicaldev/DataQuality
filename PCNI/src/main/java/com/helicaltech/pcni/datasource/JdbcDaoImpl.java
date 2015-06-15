@@ -181,12 +181,12 @@ class JdbcDaoImpl implements IJdbcDao {
 	public List<String> searchUserById(@Nullable Connection connection,int id)
 	{
 		List<String> userList = null;
-		//String searchUserQuery = "SELECT id,username from t_pcni_users";
+		//String searchUserQuery = "SELECT id,username from h_users";
 		Statement statement = null;
 		ResultSet resultSet = null;
 		try {
 			statement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-			resultSet = statement.executeQuery("SELECT username FROM t_pcni_users");
+			resultSet = statement.executeQuery("SELECT username FROM h_users");
 				while(resultSet.next())
 				{
 					userList.add(resultSet.getString("username"));
@@ -215,7 +215,7 @@ class JdbcDaoImpl implements IJdbcDao {
 		Statement statement = null;
 		ResultSet resultSet = null;
 		try {
-			String searchUserQry = "SELECT username FROM t_pcni_users;";
+			String searchUserQry = "SELECT username FROM h_users;";
 			statement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 			resultSet = statement.executeQuery(searchUserQry);
 			while (resultSet.next()) {
@@ -245,7 +245,7 @@ class JdbcDaoImpl implements IJdbcDao {
 		Statement statement = null;
 		ResultSet resultSet = null;
 		String deleteRoleMappingQuery = "DELETE FROM user_role WHERE user_id="+id+";";
-		String deleteUserQuery = "DELETE FROM t_pcni_users WHERE id="+id+";";
+		String deleteUserQuery = "DELETE FROM h_users WHERE id="+id+";";
 		try {
 			statement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 			statement.executeUpdate(deleteRoleMappingQuery);

@@ -253,13 +253,6 @@ private final ApplicationProperties applicationProperties;
 		{
 				serviceLoadView.setViewName("pages/menu/admin_menu");
 				
-				//request.getRequestDispatcher("/welcome.html").forward(request, response);
-//			else if(menu.equalsIgnoreCase("HDI"))
-//			{
-//				LoginForm.getInstance().setRole("ROLE_USER");
-//				serviceLoadView.setViewName("pcni");
-//				//request.getRequestDispatcher("/user.html").forward(request, response);
-//			}
 		
 		}
 		else
@@ -278,9 +271,7 @@ private final ApplicationProperties applicationProperties;
 		ModelAndView serviceLoadView = new ModelAndView();
 		if(LoginForm.getInstance().getRole().equalsIgnoreCase("ROLE_ADMIN"))
 		{
-//				LoginForm.getInstance().setRole("ROLE_USER");
 				serviceLoadView.setViewName("pcni");
-				//request.getRequestDispatcher("/user.html").forward(request, response);
 			
 		}
 		else
@@ -347,15 +338,13 @@ private final ApplicationProperties applicationProperties;
 				{
 					try {
 						request.setAttribute("service", "run");
-//						String dir = request.getParameter("dir");
-//						String file = request.getParameter("file");
 						/*
 						 * Attach the directory files and folders JSON to response body
 						 */
 						getSolutionResources();
 						request.getRequestDispatcher("/getEFWSolution.html").forward(request, response);
 						logger.debug("Returning null from /hdi mapping");
-					//	return null;
+					
 					} catch (ServletException e) {
 						logger.error("ServletException occurred", e);
 						e.printStackTrace();
@@ -382,7 +371,7 @@ private final ApplicationProperties applicationProperties;
 	 */
 	@RequestMapping(value = "/executeDatasource", method = RequestMethod.POST)
 	public @ResponseBody String executeDatasource(@RequestParam("data") String data) {
-		logger.info("Inside executeDatasource method, data");
+		logger.info("Inside executeDatasource method, data : " +data);
 		return dataSource.getResultSet(data).toString();
 	}
 	
@@ -396,7 +385,6 @@ private final ApplicationProperties applicationProperties;
 			session.invalidate();
 		}
 		
-		//request.getRequestDispatcher("/").forward(request, response);
 		serviceLoadView.setViewName("login");
 		return serviceLoadView;
 	}
@@ -407,7 +395,6 @@ private final ApplicationProperties applicationProperties;
 	public ModelAndView getEFWSolution(@RequestParam("dir") String dirPath, @RequestParam("file") String htmlFile, HttpServletResponse response,
 			HttpServletRequest request) {
 
-//		HttpSession session= request.getSession();
 		logger.debug("Inside getEFWSolution  Session ");
 		logger.debug("dir = " + dirPath);
 		
@@ -430,7 +417,6 @@ private final ApplicationProperties applicationProperties;
 				templateFile = htmlTemplate.replaceFirst("solution:", absolutePath + File.separator);
 			} else {
 				templateFile = absolutePath + File.separator + dirPath + File.separator + htmlFile;
-//				templateFile = dirPath + File.separator + efwTemplate;
 			}
 
 				logger.debug("Tempalte: File: "+templateFile);
@@ -498,7 +484,6 @@ private final ApplicationProperties applicationProperties;
 
 		JSONObject parameterJsonObject = (JSONObject) JSONSerializer.toJSON(chartData);
 		
-//		String mapId=request.getParameter("map");
 		String mapId=parameterJsonObject.getString("map");
 		Connection connections = connectionProvider.getConnection("jdbc/dqDatabase");
 		try {
@@ -689,8 +674,6 @@ private final ApplicationProperties applicationProperties;
 		jsonObject.accumulate("reportName", reportName);
 
 	
-//			jsonObject.accumulate("reportFile", list.get(0));
-//			jsonObject.accumulate("reportDirectory", list.get(1));
 			jsonObject.accumulate("reportFile", reportFile);
 			jsonObject.accumulate("reportDirectory", reportDirectory);
 	
@@ -829,9 +812,6 @@ private final ApplicationProperties applicationProperties;
 		jsonObject.accumulate("savedReportFileName",reportFile);
 		jsonObject.accumulate("visible", "true");
 		jsonObject.accumulate("reportName",reportFileName.getString("reportName"));
-
-		//List<String> userDetails = BusinessRulesUtils.getUserDetails();
-		//logger.debug("userDetails = " + userDetails);
 
 		JSONObject security = new JSONObject();
 		
@@ -988,8 +968,6 @@ private final ApplicationProperties applicationProperties;
 		String destinationFile = locationsList.get(0);
 
 		String attachmentName = reportName + "." + format;
-
-		//ConfigurationFileReader reportPropertiesReader = new ConfigurationFileReader();
 		Map<String, String> map = ConfigurationFileReader.getMapFromPropertiesFile(new File(applicationProperties.getSolutionDirectory()+File.separator+"System"+File.separator+"Reports"+File.separator+"reports.properties"));
 
 		// Set the content type for the response from the properties file

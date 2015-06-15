@@ -40,7 +40,7 @@ public class JDBCDriver {
 	
 	public JSONObject getJSONData(Connection connection, String query, ApplicationProperties appProp) {
 
-		logger.debug(" Inside JDBC DRiver Object "+query);
+		logger.debug(" Inside JDBC DRiver Object **************** "+query);
 		//EFWDQueryProcessor queryProcessor = new EFWDQueryProcessor();
 		
 			Statement statement = null;

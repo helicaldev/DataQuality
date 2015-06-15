@@ -19,7 +19,7 @@ public class LoginController {
 		Statement stmt = null;
 		
 		String fetchUser = "SELECT user.username, r.role_name FROM h_users user, role r, user_role urole WHERE user.username='"
-				+ username + "' AND user.password='" + password + "' AND urole.user_id=user.id AND r.id=urole.role_id AND user.enabled='Y'";
+				+ username + "' AND user.password='" + password + "' AND urole.user_id=user.id AND r.id=urole.role_id";
 		try
 		{
 			stmt = connection.createStatement();

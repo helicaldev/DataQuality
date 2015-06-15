@@ -278,6 +278,11 @@ public class DirectoryLoader {
 	{
 //		String relativePath =file.getAbsolutePath();
 		String relativePath = getRelativeSolutionPath(file.getAbsolutePath());
+		String fileName = file.getName();
+		if(fileName.lastIndexOf(".") != -1 && fileName.lastIndexOf(".") != 0)
+			fileName = fileName.substring(fileName.lastIndexOf(".")+1);
+		else
+			fileName = "";
 		JSONProcessor processor = new JSONProcessor();
 		Map<String, String> foldersMap = new HashMap<String, String>();
 		JSONObject visibleExtensionXMLJSONObject = processor.getJSON(file.getAbsolutePath(), false);
@@ -285,6 +290,7 @@ public class DirectoryLoader {
 		foldersMap.put("extension", extensionKey);
 		foldersMap.put("name", file.getName());
 		foldersMap.put("path", relativePath);
+		foldersMap.put("fileFormat", "CSV");
 		/*
 		 * Get the contents of the visible file into the map
 		 */
