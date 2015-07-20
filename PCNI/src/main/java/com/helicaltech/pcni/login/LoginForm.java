@@ -2,6 +2,7 @@ package com.helicaltech.pcni.login;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,7 +12,7 @@ public class LoginForm {
 	private static LoginForm loginForm = null;
 	private String jUserName = "";
 	private String jPassword= "";
-	private String role= "";
+	private List<String> role;
 	private String enabled= "";
 	private String session= "";
 	
@@ -29,7 +30,7 @@ public class LoginForm {
 			userDetails.add(jPassword);
 			setjUserName(jUserName);
 			setjPassword(jPassword);
-		//	userDetails.add(role);
+			// userDetails.addAll(role);
 //		}
 		
 	}
@@ -53,10 +54,10 @@ public class LoginForm {
 	public void setjPassword(String jPassword) {
 		this.jPassword = jPassword;
 	}
-	public String getRole() {
+	public List<String> getRole() {
 		return role;
 	}
-	public void setRole(String role) {
+	public void setRole(List<String> role) {
 		this.role = role;
 	}
 	public String getEnabled() {

@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,7 +41,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
-import com.helicaltech.pcni.export.TempDirectoryCleaner;
 import com.helicaltech.pcni.datasource.ConnectionProvider;
 import com.helicaltech.pcni.datasource.IJdbcDao;
 import com.helicaltech.pcni.driver.JDBCDriver;
@@ -50,6 +50,7 @@ import com.helicaltech.pcni.export.CSVUtility;
 import com.helicaltech.pcni.export.EnableSaveResult;
 import com.helicaltech.pcni.export.ReportsProcessor;
 import com.helicaltech.pcni.export.ReportsUtility;
+import com.helicaltech.pcni.export.TempDirectoryCleaner;
 import com.helicaltech.pcni.login.LoginController;
 import com.helicaltech.pcni.login.LoginForm;
 import com.helicaltech.pcni.process.BaseLoader;
@@ -73,7 +74,7 @@ import com.helicaltech.pcni.utils.ExecuteReport;
 //import com.helicatech.pcni.security.Authentication;
 
 @Controller
-public class ApplicationController{
+public class ApplicationController implements ApplicationContextAware {
 
 private final ApplicationProperties applicationProperties;
 	
@@ -227,11 +228,23 @@ private final ApplicationProperties applicationProperties;
 	@RequestMapping(value = "/welcome", method = { RequestMethod.POST, RequestMethod.GET })
 	public ModelAndView welcomeUser(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		ModelAndView serviceLoadView = new ModelAndView();
-		if(LoginForm.getInstance().getRole().equalsIgnoreCase("ROLE_ADMIN"))
+		/*if(LoginForm.getInstance().getRole().equalsIgnoreCase("ROLE_ADMIN"))
 		{
 			serviceLoadView.setViewName("pages/menu/admin_menu");
+		}*/
+		if(LoginForm.getInstance().getRole().contains("ADMIN"))
+		{
+			// serviceLoadView.setViewName("pages/menu/admin_menu");
+			// Currently redirecting to user page for ADMIN user as well as there is no seperate page for Admin
+			logger.debug("Setting user template for admin");
+			serviceLoadView.setViewName("pcni");
 		}
-		else if(LoginForm.getInstance().getRole().equalsIgnoreCase("ROLE_USER"))
+		/*else if(LoginForm.getInstance().getRole().equalsIgnoreCase("ROLE_USER"))
+		{
+			logger.debug("Setting user template");
+			serviceLoadView.setViewName("pcni");
+		}*/
+		else if(LoginForm.getInstance().getRole().contains("NORMAL"))
 		{
 			logger.debug("Setting user template");
 			serviceLoadView.setViewName("pcni");
@@ -249,7 +262,7 @@ private final ApplicationProperties applicationProperties;
 	@RequestMapping(value = "/adminCreateUser", method = { RequestMethod.POST, RequestMethod.GET })
 	public @ResponseBody ModelAndView adminCreateUser(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		ModelAndView serviceLoadView = new ModelAndView();
-		if(LoginForm.getInstance().getRole().equalsIgnoreCase("ROLE_ADMIN"))
+		if(LoginForm.getInstance().getRole().contains("ADMIN"))
 		{
 				serviceLoadView.setViewName("pages/menu/admin_menu");
 				
@@ -269,7 +282,12 @@ private final ApplicationProperties applicationProperties;
 	@RequestMapping(value = "/adminHDI", method = { RequestMethod.POST, RequestMethod.GET })
 	public @ResponseBody ModelAndView adminHDIMenu(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		ModelAndView serviceLoadView = new ModelAndView();
-		if(LoginForm.getInstance().getRole().equalsIgnoreCase("ROLE_ADMIN"))
+		/*if(LoginForm.getInstance().getRole().equalsIgnoreCase("ROLE_ADMIN"))
+		{
+				serviceLoadView.setViewName("pcni");
+			
+		}*/
+		if(LoginForm.getInstance().getRole().contains("ROLE_USER"))
 		{
 				serviceLoadView.setViewName("pcni");
 			
@@ -313,9 +331,8 @@ private final ApplicationProperties applicationProperties;
 		LoginController loginController= new LoginController();
 		
 		
-			String isAuthenticated=	loginController.performLogin(connection, userName, passWord);
+			String isAuthenticated=	loginController.performLogin(session, connection, userName, passWord);
 			DbUtils.closeQuietly(connection);
-			
 			
 			if(isAuthenticated.equals("Success"))
 			{
@@ -1193,21 +1210,16 @@ private final ApplicationProperties applicationProperties;
 		logger.debug("schedulePath: " + schedulePath);
 		File file = new File(schedulePath);
 		if (file.exists()) {
-			//userService = (UserService) applicationContext.getBean("userDetailsService");
-
-			//logger.debug("password: " + currentUser.getPassword());
 			String password = LoginForm.getInstance().getjPassword();
 			String baseUrl = scheduleProcessCall.gettingBaseUrl();
 			ScheduleProcess scheduleProcess = new ScheduleProcess();
 			XmlOperation xmlOperation = new XmlOperation();
-			logger.debug("baseUrl: " + baseUrl);
-
 			List<String> listId = new ArrayList<String>();
 			listId = xmlOperation.getIdFromJson(schedulePath);
 			for (int idCount = 0; idCount < listId.size(); idCount++) {
 				scheduleProcess.delete(listId.get(idCount));
 			}
-			scheduleProcessCall.scheduleOperation(schedulePath, baseUrl, password);
+			scheduleProcessCall.scheduleOperation(schedulePath, baseUrl, password, this.connectionProvider);
 		}
 	}
 	
@@ -1388,7 +1400,5 @@ private final ApplicationProperties applicationProperties;
 		logger.debug("JSON Before creating xml tag:" + jsonObject);
 		return jsonObject;
 	}
-	
-
 	
 }

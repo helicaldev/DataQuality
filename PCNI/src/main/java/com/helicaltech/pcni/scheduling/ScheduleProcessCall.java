@@ -1,33 +1,45 @@
 package com.helicaltech.pcni.scheduling;
 
-
+import com.helicaltech.pcni.controller.GetPassword;
+import com.helicaltech.pcni.datasource.ConnectionProvider;
 import com.helicaltech.pcni.resourceloader.JSONProcessor;
 import com.helicaltech.pcni.rules.BusinessRulesUtils;
+import com.helicaltech.pcni.utils.ApplicationContextAccessor;
 import com.helicaltech.pcni.utils.ConfigurationFileReader;
+
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
  * This class is responsible for doing scheduling related opration
- *
+ * 
  * @author Prashansa
  * @version 1.1
  */
 public class ScheduleProcessCall {
-	private static final Logger logger = Logger.getLogger(ScheduleProcessCall.class);
+
+	Statement stmt = null;
+
+	private static final Logger logger = Logger
+			.getLogger(ScheduleProcessCall.class);
 
 	/**
 	 * <p>
 	 * scheduleOperation() is responsible for reading the scheduling.xml from
 	 * given path and schedule all the job given in XML
 	 * </p>
-	 *
+	 * 
 	 * @param path
 	 *            a <code>String</code> specify path of scheduling.xml
 	 * @param baseUrl
@@ -38,7 +50,7 @@ public class ScheduleProcessCall {
 	 * @return
 	 * @see EFWController
 	 */
-	public void scheduleOperation(String path, String baseUrl, String uPassword) {
+	public void scheduleOperation(String path, String baseUrl, String uPassword, ConnectionProvider connectionProvider) {
 		logger.debug("Inside Schedule process call");
 		JSONProcessor jsonProcessor = new JSONProcessor();
 		JSONObject obj = new JSONObject();
@@ -59,6 +71,8 @@ public class ScheduleProcessCall {
 		 */
 		String className = "com.helicaltech.pcni.scheduling.ScheduleJob";
 		String jobName = "";
+		String createdBy = "";
+		String pwd = "";
 		ScheduleProcess schedulerProcess = new ScheduleProcess();
 		ConvertIntoCronExpression convertIntoCronExpression = new ConvertIntoCronExpression();
 
@@ -68,23 +82,51 @@ public class ScheduleProcessCall {
 				logger.debug("discarding 0 id");
 				jsonArray1.getJSONObject(count).discard("@id");
 				jsonArray1.getJSONObject(count).discard("isActive");
-				logger.debug("jsonArray1===:  " + jsonArray1.getJSONObject(count).isEmpty());
+				logger.debug("jsonArray1===:  "
+						+ jsonArray1.getJSONObject(count).isEmpty());
 			}
-			if (jsonArray1.getJSONObject(count).isEmpty() == false && jsonArray1.getJSONObject(count).getString("isActive").equals("true")) {
+
+			// List<User> usersWithPasswords = Write Code
+
+			if (jsonArray1.getJSONObject(count).isEmpty() == false
+					&& jsonArray1.getJSONObject(count).getString("isActive")
+							.equals("true")) {
 				JSONObject newJSoJsonObject = new JSONObject();
 				newJSoJsonObject = jsonArray1.getJSONObject(count);
-				logger.debug("newJSoJsonObject:  " + newJSoJsonObject);
 				jobName = String.valueOf(id);
-				net.sf.json.JSONObject scheduleOption = jsonArray1.getJSONObject(count).getJSONObject("ScheduleOptions");
-				logger.debug("scheduleOption:  " + scheduleOption.getString("Frequency"));
+				net.sf.json.JSONObject scheduleOption = jsonArray1
+						.getJSONObject(count).getJSONObject("ScheduleOptions");
+				logger.debug("scheduleOption:  "
+						+ scheduleOption.getString("Frequency"));
 				logger.debug("jobName :" + jobName);
-				cronexpression = convertIntoCronExpression.convertDateIntoCronExpression(scheduleOption);
+				cronexpression = convertIntoCronExpression
+						.convertDateIntoCronExpression(scheduleOption);
 				logger.debug("cronexpression: " + cronexpression);
+				createdBy = jsonArray1.getJSONObject(count)
+						.getJSONObject("Security").getString("CreatedBy");
+				logger.debug("createdBy: " + createdBy);
+				GetPassword get_created_pwd = new GetPassword();
+				Connection connection = connectionProvider.getConnection("jdbc/pcni");
+				pwd = get_created_pwd.getPassword(connection, createdBy);
+			
+				try {
+					connection.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				logger.debug("created by : " + pwd);
 				try {
 
-					scheduleClass = (ISchedule) Class.forName(className).newInstance();
-					newJSoJsonObject.accumulate("password", uPassword);
-					schedulerProcess.scheduleJob(cronexpression, scheduleClass, jobName, "DEFAULT", path, newJSoJsonObject, baseUrl);
+					scheduleClass = (ISchedule) Class.forName(className)
+							.newInstance();
+					// get password from table for created by
+					newJSoJsonObject.accumulate("password", pwd);
+					schedulerProcess
+							.scheduleJob(cronexpression, scheduleClass,
+									jobName, "DEFAULT", path, newJSoJsonObject,
+									baseUrl);
 				} catch (InstantiationException e1) {
 					e1.printStackTrace();
 				} catch (IllegalAccessException e1) {
@@ -98,7 +140,7 @@ public class ScheduleProcessCall {
 
 	/**
 	 * this method is responsible to schedule specific job on the basis of id.
-	 *
+	 * 
 	 * @param path
 	 *            a <code>String</code> specify path of scheduling.xml
 	 * @param idd
@@ -112,7 +154,7 @@ public class ScheduleProcessCall {
 
 		ISchedule scheduleClass;
 		String cronexpression = "";
-//		String className = "com.helical.efw.scheduling.ScheduleJob";
+		// String className = "com.helical.efw.scheduling.ScheduleJob";
 		String jobName = "";
 
 		XmlOperation xmlOperation = new XmlOperation();
@@ -127,19 +169,24 @@ public class ScheduleProcessCall {
 		jsonObjectScheduleOption = jsonObject.getJSONObject("ScheduleOptions");
 		xmlOperation.getParticularObject(path, idd);
 		String jobType = "DEFAULT";
-		cronexpression = convertIntoCronExpression.convertDateIntoCronExpression(jsonObjectScheduleOption);
+		cronexpression = convertIntoCronExpression
+				.convertDateIntoCronExpression(jsonObjectScheduleOption);
 		logger.debug("cronexpression " + cronexpression);
 
 		jobName = jsonObject.getString("@id");
 		logger.debug("jobName :" + jobName);
 		JSONObject reportParameter = new JSONObject();
-		reportParameter = jsonObject.getJSONObject("SchedulingJob").getJSONObject("reportParameters");
+		reportParameter = jsonObject.getJSONObject("SchedulingJob")
+				.getJSONObject("reportParameters");
 		logger.debug("reportParameter:  " + reportParameter);
 		logger.debug("jsonObject before sending to schedule: " + jsonObject);
 		try {
 
-			scheduleClass = (ISchedule) Class.forName("com.helicaltech.pcni.scheduling.ScheduleJob").newInstance();
-			schedulerProcess.scheduleJob(cronexpression, scheduleClass, jobName, jobType, path, jsonObject, baseUrl);
+			scheduleClass = (ISchedule) Class.forName(
+					"com.helicaltech.pcni.scheduling.ScheduleJob")
+					.newInstance();
+			schedulerProcess.scheduleJob(cronexpression, scheduleClass,
+					jobName, jobType, path, jsonObject, baseUrl);
 		} catch (InstantiationException e1) {
 			e1.printStackTrace();
 		} catch (IllegalAccessException e1) {
@@ -210,7 +257,7 @@ public class ScheduleProcessCall {
 	 * creteReportParameter() is responsible for create report parameter
 	 * like:delemeter=abc&Cuntry=india on the basis of JSONObject
 	 * </p>
-	 *
+	 * 
 	 * @param reportParameter
 	 *            a <code>JSONObject</code> specify Report parameter
 	 * @return <code>String</code> create report parameter
@@ -233,13 +280,15 @@ public class ScheduleProcessCall {
 
 			logger.debug("KeyValue:  " + KeyValue);
 			if (KeyValue.contains("[") || KeyValue.contains("]")) {
-				String modifyKeyValue = KeyValue.substring(1, KeyValue.length() - 1).replace("\"", "");
+				String modifyKeyValue = KeyValue.substring(1,
+						KeyValue.length() - 1).replace("\"", "");
 				logger.debug("modifyKeyValue:  " + modifyKeyValue);
 				String[] modifyKeyValueArray = modifyKeyValue.split(",");
 				logger.debug("modifyKeyValueArray:  " + modifyKeyValueArray);
 				for (int stringCount = 0; stringCount < modifyKeyValueArray.length; stringCount++) {
 					String parameterValue = modifyKeyValueArray[stringCount];
-					parameter = parameter + keyName + "=" + parameterValue + "&";
+					parameter = parameter + keyName + "=" + parameterValue
+							+ "&";
 					logger.debug("parameterValue:  " + parameterValue);
 				}
 			} else {
@@ -252,28 +301,37 @@ public class ScheduleProcessCall {
 
 	/**
 	 * gettingBaseUrl() responsible to get base url from setting.xml
-	 *
+	 * 
 	 * @return base url.
 	 * @see EFWController
 	 */
 	public String gettingBaseUrl() {
-	//	ApplicationProperties applicationProperties = ApplicationProperties.getInstance();
-		//String settingPath = applicationProperties.getSettingPath();
-		String settingPath = "";
-		logger.debug("settingPath: " + settingPath);
-		JSONObject jsonObject = new JSONObject();
-		JSONProcessor jsonProcessor = new JSONProcessor();
-		jsonObject = jsonProcessor.getJSON(settingPath, true);
-		logger.debug("jsonObject: " + jsonObject);
-		//String baseUrl = jsonObject.getJSONObject("efwProject").getString("BaseUrl");
-		String baseUrl = "http://localhost:8080/PCNI/hdi.html";
+		// ApplicationProperties applicationProperties =
+		// ApplicationProperties.getInstance();
+		// String settingPath = applicationProperties.getSettingPath();
+		/*
+		 * String settingPath = ""; logger.debug("settingPath: " + settingPath);
+		 * JSONObject jsonObject = new JSONObject(); JSONProcessor jsonProcessor
+		 * = new JSONProcessor(); jsonObject =
+		 * jsonProcessor.getJSON(settingPath, true); logger.debug("jsonObject: "
+		 * + jsonObject); //String baseUrl =
+		 * jsonObject.getJSONObject("efwProject").getString("BaseUrl"); String
+		 * baseUrl = "http://localhost:8080/PCNI/hdi.html"; return baseUrl;
+		 */
+		Map<String, String> getpropertiesFileValue = new HashedMap();
+		ConfigurationFileReader propertiesFileReader = new ConfigurationFileReader();
+		getpropertiesFileValue = propertiesFileReader
+				.read("project.properties");
+		String baseUrl = getpropertiesFileValue.get("baseUrl");
+
 		return baseUrl;
+
 	}
 
 	/**
 	 * getSchedulePath() is responsible to read scheduleing.xml path from
 	 * project.properties file
-	 *
+	 * 
 	 * @return scheduling.xml file path
 	 * @see EFWController
 	 */
@@ -281,7 +339,8 @@ public class ScheduleProcessCall {
 		@SuppressWarnings("unchecked")
 		Map<String, String> getpropertiesFileValue = new HashedMap();
 		ConfigurationFileReader propertiesFileReader = new ConfigurationFileReader();
-		getpropertiesFileValue = propertiesFileReader.read("project.properties");
+		getpropertiesFileValue = propertiesFileReader
+				.read("project.properties");
 		String SchedulerPath = getpropertiesFileValue.get("schedularPath");
 
 		return SchedulerPath;

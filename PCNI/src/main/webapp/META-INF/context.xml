@@ -51,6 +51,6 @@
               username="root"
               password="welcome123"
               driverClassName="com.mysql.jdbc.Driver"
-              url="jdbc:mysql://173.194.107.15:3306/efw_scrunch"
+              url="jdbc:mysql://173.194.107.15:3306/OPENHMIS2"
               closeMethod="close"/>
 </Context>

@@ -31,6 +31,7 @@
                         sendMail : baseUrl + "sendMail.html",
                         updateEFWTemplate: baseUrl + "updateEFWTemplate.html",
                         sessionUserName: "${sessionScope.user}",
+                        sessionUserRoles: "${sessionScope.Roles}",
                         /*sessionUserEmail: "${sessionScope.SPRING_SECURITY_CONTEXT.authentication.principal.emailAddress}",
                         sessionUserOrganization : "${sessionScope.SPRING_SECURITY_CONTEXT.authentication.principal.org_name}", */
                         controllers :{
@@ -78,7 +79,12 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <span class="navbar-brand"><span class="fa fa-line-chart" id="page-icon"></span>&nbsp;<span id="page-title">Data Quality report</span></span>
+                <span class="navbar-brand">
+                	<span class="fa fa-line-chart" id="page-icon"></span>&nbsp;
+                		<span id="page-title">Data Quality report</span>
+                		
+                </span>
+                
             </div>
         
             <!-- Collect the nav links, forms, and other content for toggling -->
@@ -92,6 +98,9 @@
                             </div>
                         </form>
                     </li>
+                    <li><a href="#"><span id="showRoles"></span></a></li>
+                    <script>
+                	$("#showRoles").html(window.DashboardGlobals.sessionUserName + " | " + window.DashboardGlobals.sessionUserRoles);</script>
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="fa fa-lg fa-bars"></span></a>
                         <ul class="dropdown-menu">
