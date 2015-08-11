@@ -1,5 +1,4 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
-
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <!DOCTYPE html>
 <html>
@@ -83,6 +82,7 @@
                 	<span class="fa fa-line-chart" id="page-icon"></span>&nbsp;
                 		<span id="page-title">Data Quality report</span>
                 		
+                		
                 </span>
                 
             </div>
@@ -164,7 +164,7 @@
     <div class="container">
         <div class="row" id="main"></div>
     </div>
-    
+
     <!-- Modal for Emailing -->
     <div class="modal" id="emailing-modal" data-backdrop="static">
         <div class="modal-dialog">
@@ -211,7 +211,9 @@
                         <div class="form-group hidden">
                             <label for="save-report-name">Report Name</label>
                             <input type="text" class="form-control" id="save-report-name" placeholder="Provide a name to you report schedule">
-                        </div>
+                            <label for="reportDesc">Description</label>
+                            <input type="text" class="form-control" maxlength="100" id="reportDesc" placeholder="Provide a description to you report schedule">
+                       </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -394,6 +396,15 @@
                             <tbody id="rename"></tbody>
                         </table>
                     </div>
+                     <div class="fs-action-form edit_desc-list">
+                        <table class="table table-striped">
+                            <thead>
+                                <th>Old Description</th>
+                                <th>New Description</th>
+                            </thead>
+                            <tbody id="editDesc"></tbody>
+                        </table>
+                    </div>
                     <div class="fs-action-form delete-block">
                         <p>Are you sure, you want to delete the selected files?</p>
                     </div>
@@ -462,8 +473,32 @@
             </div>
         </div>
     </script>
+
     <!-- End of Home Template -->
-    
+    <!-- edit description template -->
+     <div class="modal fade" id="editModal" class="" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+	 <div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h4 class="modal-title" id="modalTitle">Please give a description for your report</h4>
+			</div>
+			<div class="modal-body">
+				<div class="form-group">
+					 <div class="col-sm-12">
+                             <input type="text" class="form-control" maxlength="100" id="descReport" name="descReport" placeholder = "Enter Description">
+                     </div>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<div class="form-group">
+					<div id="modal_submit" class="col-sm-3 col-sm-offset-9"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+    <!-- end of edit description template -->
     <!-- New Report Template -->
     <script type="text/html" id="new-report-tpl" data-title="New Report" data-icon="bar-chart">
         <ul id="new-report-list"></ul>  
@@ -498,5 +533,17 @@
     <!-- End of Saved Reports Template -->
     <script type="text/javascript" src="js/plugins/fileupload.js"></script>
     <script type="text/javascript" src="js/app.js"></script>
+
+     <div class="footer" style="position:fixed; bottom:0px;width:100%;background-color:#cbe8ba;color:black;">
+     	<div class="container">
+    	<script>var version = ${properties.versionNumber};</script>
+		<%
+			String version = "<script>document.writeln(version)</script>";
+			out.println("Version"+" "+version);
+		
+		%>
+		</div>
+	</div>
+    
 </body>
 </html>

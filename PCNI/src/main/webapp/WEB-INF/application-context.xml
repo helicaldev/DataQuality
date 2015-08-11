@@ -10,5 +10,11 @@
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
     <context:annotation-config/>
-   
+		<bean id="properties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		    <property name="locations">
+		        <list><value>classpath:project.properties</value></list>
+		    </property>
+		</bean>
+
+
 </beans>

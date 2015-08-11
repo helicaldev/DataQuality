@@ -385,14 +385,14 @@ private final ApplicationProperties applicationProperties;
 	 * @param data
 	 *            The request parameter data
 	 * @return Returns the data by executing the query
-	 */
+	 **/
 	@RequestMapping(value = "/executeDatasource", method = RequestMethod.POST)
 	public @ResponseBody String executeDatasource(@RequestParam("data") String data) {
 		logger.info("Inside executeDatasource method, data : " +data);
 		return dataSource.getResultSet(data).toString();
 	}
 	
-	
+
 	@RequestMapping(value = "/logout", method = { RequestMethod.POST, RequestMethod.GET })
 	public ModelAndView performLogout(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		HttpSession session = request.getSession();
@@ -524,13 +524,17 @@ private final ApplicationProperties applicationProperties;
 					{
 						String paramName=confQueryMap.get("param_"+mapId+"_"+param);
 						String replace="${"+paramName+"}";
+						logger.debug("parameters :"+replace);
 						String paramFromJson=parameterJsonObject.getString(paramName);
+						logger.debug("paramFromJson :"+paramFromJson);
 						if(paramFromJson.contains("["))
 						{
 							paramFromJson=paramFromJson.replaceAll("\\[", "").replaceAll("\\]","");
 							paramFromJson=paramFromJson.replaceAll("\"", "'");
+							logger.debug("paramFromJson :"+paramFromJson);
 						}
 						query=query.replace(replace,paramFromJson);
+						logger.debug("query :"+query);
 					}
 					
 				}
@@ -575,7 +579,7 @@ private final ApplicationProperties applicationProperties;
 		String operation = request.getParameter("operation");
 		String reportName = request.getParameter("reportName");
 		String reportFile = request.getParameter("reportFile");
-		
+		String reportDesc = request.getParameter("reportDesc");
 		if (operation == null) {
 			operation = "add";
 		}
@@ -589,7 +593,7 @@ private final ApplicationProperties applicationProperties;
 			}
 			String location = request.getParameter("location");
 			Assert.notNull(location, "location parameter is not provided!");
-			String result = saveReport(reportFile, reportDirectory, location, reportName, request);
+			String result = saveReport(reportFile, reportDirectory, location, reportName, reportDesc, request);
 			if ("success".equals(result)) {
 
 				request.setAttribute("response", "Successfully saved the report!");
@@ -599,9 +603,26 @@ private final ApplicationProperties applicationProperties;
 
 			return result;
 		} else if ("update".equalsIgnoreCase(operation)) {
-			/*
-			 * For future use
-			 */
+			String location = request.getParameter("location");
+				String result="";
+				String isFromFavFolder = "false";
+				isFromFavFolder = request.getParameter("flagIsFav");
+				
+				if(isFromFavFolder.equalsIgnoreCase("true"))
+				{
+					result = updateDescriptionOfFav(location, reportFile, reportDirectory, reportDesc);
+				}
+				else
+				{
+					result = updateDescription(location, reportFile, reportDirectory, reportDesc);
+				}
+				if ("success".equals(result)) {
+
+					request.setAttribute("response", "Successfully edited the description!");
+				} else if ("couldn't edit the description".equals(result)) {
+					request.setAttribute("response", "Couldn't edit the description!");
+				}
+				return result;
 		} else if ("favourite".equalsIgnoreCase(operation)) {
 		//	UserActionsUtility utility = new UserActionsUtility();
 			
@@ -610,14 +631,14 @@ private final ApplicationProperties applicationProperties;
 			if ("unmark".equalsIgnoreCase(request.getParameter("markAsFavourite"))) {
 				// Delete the favourite file and remove mark the file as
 				// favourite
-				deleteFavouriteFile(favouriteLocation,reportFile, reportDirectory);
-				result = markFavourite(reportFile, reportDirectory, false, null);
+				deleteFavouriteFile(favouriteLocation,reportFile, reportDirectory, null);
+				result = markFavourite(reportFile, reportDirectory, false, null,reportDesc);
 			} else {
 				// Create a favourite file and save its name in RDF(mark as
 				// favourite)
-				String favFileName = createFavouriteFile(reportFile, reportDirectory, favouriteLocation);
+				String favFileName = createFavouriteFile(reportFile, reportDirectory, favouriteLocation, reportDesc);
 				logger.debug("favFileName = " + favFileName);
-				result =markFavourite(reportFile, reportDirectory, true, favFileName);
+				result =markFavourite(reportFile, reportDirectory, true, favFileName,reportDesc);
 			}
 			if ("success".equals(result)) {
 				request.setAttribute("response", "Successfully marked as Favourite!");
@@ -664,12 +685,14 @@ private final ApplicationProperties applicationProperties;
 	 *         result of processing
 	 */
 
-	private String saveReport(String reportFile, String reportDirectory, String location, String reportName, HttpServletRequest request) {
+	private String saveReport(String reportFile, String reportDirectory, String location, String reportName, String reportDesc, HttpServletRequest request) {
 		String reportParameters = null;
 		int schedulingReference = 0;
-
+		String report_description = request.getParameter("reportDesc");
+		
 		if (request.getParameter("ScheduleOptions") != null) {
 			schedulingReference = schedule(request);
+			 
 		}
 		if (request.getParameter("reportParameters") != null) {
 			reportParameters = request.getParameter("reportParameters");
@@ -690,8 +713,9 @@ private final ApplicationProperties applicationProperties;
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.accumulate("reportName", reportName);
 
-	
+		logger.debug("By default visibility is set to be " + visible);
 			jsonObject.accumulate("reportFile", reportFile);
+			jsonObject.accumulate("reportDesc", report_description);
 			jsonObject.accumulate("reportDirectory", reportDirectory);
 	
 		if (!(reportParameters == null)) {
@@ -725,7 +749,78 @@ private final ApplicationProperties applicationProperties;
 		return ApplicationUtilities.writeReportXML(xmlFile, jsonObject, "SR") ? "success" : "couldn't save the file";
 	}
 
-
+	private String updateDescription(String location, String reportFile, String reportDirectory, String reportDesc) {
+		String solutionDirectory = this.applicationProperties.getSolutionDirectory();
+		File xmlFile = new File(solutionDirectory + File.separator + reportDirectory + File.separator + reportFile);
+		logger.debug("xmlFile = " + xmlFile);
+		JSONProcessor processor = new JSONProcessor();
+		JSONObject jsonObject = processor.getJSON(xmlFile.toString(), false);
+		logger.debug("inside update description method :"+jsonObject);
+			if (jsonObject.getJSONObject("security").getString("createdBy").equalsIgnoreCase(LoginForm.getInstance().getjUserName())) {
+					logger.debug("Matching user credentials!");
+							String favourite = jsonObject.getString("favourite");
+							if(!"false".equalsIgnoreCase(favourite)) {
+								//Search for favorite file. Get location.  
+								UserActionsUtility user = new UserActionsUtility();
+								String fav = user.search(solutionDirectory, favourite);
+								JSONObject json = processor.getJSON(fav, false);
+								json.discard("reportDesc");
+								json.accumulate("reportDesc", reportDesc);
+								ApplicationUtilities.writeReportXML(new File(fav), json, "efwfav");
+							}
+							String reportParameters = jsonObject.getString("reportParameters");
+							jsonObject.discard("reportDesc");
+							jsonObject.discard("reportParameters");
+							jsonObject.accumulate("reportParameters", "<![CDATA[" + reportParameters + "]]>");
+							jsonObject.accumulate("reportDesc",reportDesc);
+							logger.debug("jsonObject = " + jsonObject);
+							if (ApplicationUtilities.writeReportXML(xmlFile, jsonObject, "SR")) {
+								return "success";
+							}
+						} else {
+							return "could not update";
+						}
+			return "could not update";
+		}
+	
+	private String updateDescriptionOfFav(String location, String reportFile, String reportDirectory, String reportDesc) {
+		String solutionDirectory = this.applicationProperties.getSolutionDirectory();
+		File xmlFile = new File(solutionDirectory + File.separator + reportDirectory + File.separator + reportFile);
+		logger.debug("xmlFile = " + xmlFile);
+		JSONProcessor processor = new JSONProcessor();
+		JSONObject jsonObject = processor.getJSON(xmlFile.toString(), false);
+		logger.debug("inside update description method :"+jsonObject+" \n Report file: "+reportFile+" \n Reportdirectory: "+reportDirectory+" \n Report Desc: "+reportDesc);
+			if (jsonObject.getJSONObject("security").getString("createdBy").equalsIgnoreCase(LoginForm.getInstance().getjUserName())) {
+					logger.debug("Matching user credentials!");
+							String favourite = jsonObject.getString("savedReportFileName");
+							if(favourite != null && favourite.length() > 0) {
+								//Search for favorite file. Get location.  
+								
+								UserActionsUtility user = new UserActionsUtility();
+								String fav = user.search(solutionDirectory, favourite);
+								JSONObject json = processor.getJSON(fav, false);
+								System.out.println("JSON: "+json);
+								String reportParameters = json.getString("reportParameters");
+								
+								json.discard("reportDesc");
+								json.discard("reportParameters");
+								json.accumulate("reportParameters", "<![CDATA[" + reportParameters + "]]>");
+								json.accumulate("reportDesc", reportDesc);
+								ApplicationUtilities.writeReportXML(new File(fav), json, "efwsr");
+							}
+						//	String reportParameters = jsonObject.getString("reportParameters");
+							jsonObject.discard("reportDesc");
+						//	jsonObject.accumulate("reportParameters", "<![CDATA[" + reportParameters + "]]>");
+							jsonObject.accumulate("reportDesc",reportDesc);
+							logger.debug("jsonObject = " + jsonObject);
+							if (ApplicationUtilities.writeReportXML(xmlFile, jsonObject, "efwfav")) {
+								return "success";
+							}
+						} else {
+							return "could not update";
+						}
+			return "could not update";
+		}
 	
 	@RequestMapping(value = "/executeSavedReport", method = RequestMethod.POST)
 	public ModelAndView executeSavedReport(@RequestParam("dir") String directoryName, @RequestParam("file") String fileName,
@@ -817,7 +912,7 @@ private final ApplicationProperties applicationProperties;
 	 *            A <code>String</code> which specifies favourite file location
 	 * @return The name of the favourite file
 	 */
-	public String createFavouriteFile(String reportFile, String reportDirectory, String favouriteLocation) {
+	public String createFavouriteFile(String reportFile, String reportDirectory, String favouriteLocation, String report_description) {
 		if (favouriteLocation == null) {
 				logger.error("Provide request parameter favouriteLocation");
 				return null;
@@ -829,7 +924,8 @@ private final ApplicationProperties applicationProperties;
 		jsonObject.accumulate("savedReportFileName",reportFile);
 		jsonObject.accumulate("visible", "true");
 		jsonObject.accumulate("reportName",reportFileName.getString("reportName"));
-
+		jsonObject.accumulate("reportDesc",reportFileName.getString("reportDesc"));
+		
 		JSONObject security = new JSONObject();
 		
 		// Add user name
@@ -862,7 +958,7 @@ private final ApplicationProperties applicationProperties;
 	 *            Specifies favourite file name
 	 * @return A string that represents the result of the operation
 	 */
-	public String markFavourite(String reportFile, String reportDirectory, boolean isFavourite, String favFileName) {
+	public String markFavourite(String reportFile, String reportDirectory, boolean isFavourite, String favFileName,String reportDesc) {
 
 		File xmlFile = new File(this.applicationProperties.getSolutionDirectory() + File.separator + reportDirectory + File.separator + reportFile);
 		logger.debug("xmlFile = " + xmlFile);
@@ -922,7 +1018,7 @@ private final ApplicationProperties applicationProperties;
 	 * @param reportDirectory
 	 *            The location of reportFile
 	 */
-	public void deleteFavouriteFile(String favLocation,String reportFile, String reportDirectory) {
+	public void deleteFavouriteFile(String favLocation,String reportFile, String reportDirectory,String reportDesc) {
 		File xmlFile = new File(applicationProperties.getSolutionDirectory() + File.separator + reportDirectory + File.separator + reportFile);
 		JSONProcessor processor = new JSONProcessor();
 		JSONObject jsonObject = processor.getJSON(xmlFile.toString(), false);
@@ -1254,6 +1350,7 @@ private final ApplicationProperties applicationProperties;
 		String ScheduleOptions = request.getParameter("ScheduleOptions");
 		String emailSettingsString = request.getParameter("EmailSettings");
 		String isActive = request.getParameter("isActive");
+		// String reportDesc = request.getParameter("reportDesc");
 		int maxid = 0;
 
 		logger.debug("reportParameters: " + reportParameters);
@@ -1301,8 +1398,7 @@ private final ApplicationProperties applicationProperties;
 					logger.debug("baseUrlPath:  " + baseUrlPath);
 					scheduleProcessCall.scheduleSpecificJob(SchedulerPath, String.valueOf(maxid + 1), baseUrlPath);
 				} else {
-					jsonObject = addNewJobWithoutCdata(ScheduleOptions, emailSettingsString, reportParameters, isActive, reportDirectory, reportFile,
-							reportName);
+					jsonObject = addNewJobWithoutCdata(ScheduleOptions, emailSettingsString, reportParameters, isActive, reportDirectory, reportFile,reportName);
 					logger.debug("New JSON DATA : " + jsonObject);
 
 					String pathh = request.getContextPath();

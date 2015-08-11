@@ -83,14 +83,19 @@ public class DataSetResource {
 				for(int param=1; param<=parameterCount; param++)
 				{
 					String paramName=confQueryMap.get("param_"+mapId+"_"+param);
-					String replace="\"${"+paramName+"}\"";
+					// String replace="\"${"+paramName+"}\"";
+					String replace="${"+paramName+"}";
+					logger.debug("parameters :"+replace);
 					String paramFromJson=parameterJsonObject.getString(paramName);
+					logger.debug("paramFromJson :"+paramFromJson);
 					if(paramFromJson.contains("["))
 					{
 						paramFromJson=paramFromJson.replaceAll("\\[", "").replaceAll("\\]","");
 						paramFromJson=paramFromJson.replaceAll("\"", "'");
+						logger.debug("paramFromJson :"+paramFromJson);
 					}
 					query=query.replace(replace,paramFromJson);
+					logger.debug("query :"+query);
 				}
 				
 			}

@@ -18,6 +18,9 @@ import org.springframework.util.Assert;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 
 /**
@@ -161,19 +164,58 @@ public class ScheduleJob implements Job, ISchedule {
 		// Send mail to all the recipients with all the attachments
 		mailClient.sendMessage(hostName, port, totalRecipients, from, isAuthenticated, isSSLEnabled, user, password, Subject, Body, attachments);
 		String id = String.valueOf(jobid);
-		String nOFExecution = json.getString("NoOfExecutions");
-		logger.debug("nOFExecution:  " + nOFExecution);
+	//	String nOFExecution = json.getString("NoOfExecutions");
+		
 		if (json.getJSONObject("ScheduleOptions").getString("endsRadio").equalsIgnoreCase("After")) {
 			logger.debug("json.getString(NoOfExecutions):  " + json.getString("NoOfExecutions"));
 			JSONObject jsonObject1 = new JSONObject();
 			jsonObject1 = xmlOperation.getParticularObject(path, id);
 			logger.debug("jsonObject for Specific ID: " + jsonObject1);
 			logger.debug("NUMBER OF EXECUTION:  " + jsonObject1.getString("NoOfExecutions"));
-			newData.accumulate("NoOfExecutions", Integer.parseInt(jsonObject1.getString("NoOfExecutions")) + 1);
+			
+			//newData.accumulate("NoOfExecutions", Integer.parseInt(jsonObject1.getString("NoOfExecutions")) + 1);
+			Integer nOFExecution = Integer.parseInt(jsonObject1.getString("NoOfExecutions"));
+	
+			nOFExecution = nOFExecution + 1;
+			newData.accumulate("NoOfExecutions", nOFExecution);
+			
+			Integer endAfterExecutions = Integer.parseInt(jsonObject1.getJSONObject("ScheduleOptions").getString("EndAfterExecutions"));
+			
+			if(nOFExecution >= endAfterExecutions ){
+				newData.accumulate("isActive", "false");
+			}
+			
+		}
+		if (json.getJSONObject("ScheduleOptions").getString("endsRadio").equalsIgnoreCase("On")) {
+			@SuppressWarnings("deprecation")
+			Date endDate;
+			try {
+				endDate = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse(json.getJSONObject("ScheduleOptions").getString("EndDate")+" "+json.getJSONObject("ScheduleOptions").getString("ScheduledTime"));
+				logger.debug("get next fir time :"+context.getNextFireTime());
+				if(context.getNextFireTime() != null) {
+					int result = context.getNextFireTime().compareTo(endDate);
+					logger.debug("compared result :"+result);
+					
+					if (result > 0) {
+						newData.accumulate("isActive", "false");
+					}
+				}
+				else {
+					newData.accumulate("isActive", "false");
+				}
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
 		}
 		newData.accumulate("NextExecutionOn", context.getNextFireTime());
 		newData.accumulate("LastExecutedOn", context.getFireTime());
-
+		/*String endsRadio = json.getJSONObject("ScheduleOptions").getString("endsRadio");
+		if("After".equalsIgnoreCase(endsRadio)) {
+			Integer endAfterExecutions = json.getJSONObject("ScheduleOptions").getInt("EndAfterExecutions");
+			if (endAfterExecutions <= )
+		}*/
 		logger.debug("newData :  " + newData);
 		logger.debug("context.getResult():  " + context.getResult());
 		XmlOperationWithParser xmlOperationWithParser = new XmlOperationWithParser();
@@ -182,50 +224,5 @@ public class ScheduleJob implements Job, ISchedule {
 
 	}
 
-	/*
-	 * public void modifyJsonField(net.sf.json.JSONObject obj, String path,
-	 * net.sf.json.JSONObject newData) { net.sf.json.JSONArray jsonArray = new
-	 * net.sf.json.JSONArray(); XmlOperation xmlOperation = new XmlOperation();
-	 * 
-	 * if (obj.getJSONObject("Schedules").get("Schedule") instanceof
-	 * net.sf.json.JSONArray) { jsonArray =
-	 * obj.getJSONObject("Schedules").getJSONArray("Schedule"); for (int count =
-	 * 0; count < jsonArray.size(); count++) { if
-	 * (jsonArray.getJSONObject(count).getString("id") == newData
-	 * .getString("id")) { int NoOfExecutions = obj.getJSONObject("Schedules")
-	 * .getJSONArray("Schedule").getJSONObject(count) .getInt("NoOfExecutions");
-	 * logger.debug("NoOfExecutions:" + NoOfExecutions);
-	 * newData.accumulate("NoOfExecutions", NoOfExecutions + 1);
-	 * 
-	 * int endAfterExecution = obj.getJSONObject("Schedules")
-	 * .getJSONArray("Schedule").getJSONObject(count)
-	 * .getJSONObject("ScheduleOptions") .getInt("EndAfterExecutions");
-	 * 
-	 * if (endAfterExecution == NoOfExecutions) { newData.put("NoOfExecutions",
-	 * NoOfExecutions); newData.accumulate("isActive", false);
-	 * logger.debug("Stop This Job"); int jobKey = newData.getInt("id"); String
-	 * jobId = String.valueOf(jobKey); ScheduleProcess schedulerProcess = new
-	 * ScheduleProcess(); schedulerProcess.delete(jobId); } }
-	 * 
-	 * } } else { int NoOfExecutions = obj.getJSONObject("Schedules")
-	 * .getJSONObject("Schedule").getInt("NoOfExecutions");
-	 * logger.debug("NoOfExecutions:" + NoOfExecutions);
-	 * newData.accumulate("NoOfExecutions", NoOfExecutions + 1);
-	 * 
-	 * int endAfterExecution = obj.getJSONObject("Schedules")
-	 * .getJSONObject("Schedule").getJSONObject("ScheduleOptions")
-	 * .getInt("EndAfterExecutions");
-	 * 
-	 * if (endAfterExecution == NoOfExecutions) { newData.put("NoOfExecutions",
-	 * NoOfExecutions); newData.accumulate("isActive", false);
-	 * logger.debug("Stop This Job"); int jobKey = newData.getInt("id"); String
-	 * jobId = String.valueOf(jobKey); ScheduleProcess schedulerProcess = new
-	 * ScheduleProcess(); schedulerProcess.delete(jobId); } obj =
-	 * xmlOperation.modifyJSONObjectById(obj, newData); } String data =
-	 * xmlOperation.convertJsonToXml(obj .getJSONArray("Schedules"));
-	 * logger.debug("newData:" + newData);
-	 * xmlOperation.writeStringIntoFile(data, path);
-	 * 
-	 * }
-	 */
+	
 }

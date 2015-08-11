@@ -23,5 +23,10 @@
 		<property name="order" value="1" />
 		<property name="prefix" value="/WEB-INF/jsp/" />
 		<property name="suffix" value=".jsp" />
+		<property name="exposedContextBeanNames">
+			<list>
+				<value>properties</value>
+			</list>
+		</property>
 	</bean>
 </beans>

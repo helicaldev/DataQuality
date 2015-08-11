@@ -356,7 +356,6 @@ $(document).ready(function() {
     return $.get(window.DashboardGlobals.solutionLoader).done(function(data) {
       var checkboxes;
       data = filter(JSON.parse(data), dataFilter[id]);
-      console.log(data);
       $fileTree.filetree({
         data: data,
         fileNodeName: 'title',
@@ -364,10 +363,23 @@ $(document).ready(function() {
         multiselect: true,
         hierarchy: false,
         nodeFormatter: function(node) {
-          var btn, fav, options, scd, select;
+          var btn, fav, options, scd, select, desc, btn_edit;
           fav = node.find('> a').data('favourite');
           options = node.find('> a').data('options');
+          desc = node.find('> a').data('reportdesc');
+          extsn = node.find('> a').data('extension');
+          
           select = options && options.selectable && options.selectable.toLowerCase() === 'true' ? true : false;
+          //if (desc) node.append("<span>&nbsp;&nbsp;&nbsp;&nbsp;" + desc +"</span>");
+          if (typeof extsn !== 'undefined') {
+              // btn = $(document.createElement('button')).addClass('fa fav-btn');
+               if (extsn === 'efwsr') {
+             	  node.append("<span>&nbsp;&nbsp;&nbsp;&nbsp;" + desc +"</span>");
+               } else if (extsn === 'efwfav'){
+             	  node.append("<span>&nbsp;&nbsp;&nbsp;&nbsp;" + desc +"</span>");
+               }
+           }
+          
           scd = typeof node.find('> a').data('schedulingreference') !== 'undefined';
           if (typeof fav !== 'undefined') {
             btn = $(document.createElement('button')).addClass('fa fav-btn');
@@ -377,12 +389,23 @@ $(document).ready(function() {
               node.append(btn.addClass('fa-star'));
             }
           }
+
           if (scd) {
             node.append($(document.createElement('button')).addClass('fa fa-clock-o scd-btn'));
           }
+          	
           if (!select) {
             node.find("> input[type=checkbox]").remove();
           }
+          //if (desc) node.append(btn_edit);
+          
+          if (typeof extsn !== 'undefined') {
+        	  btn_edit = $(document.createElement('button')).addClass('fa fa-pencil-square-o edit-desc');
+               if (extsn === 'efwsr' || extsn === 'efwfav' ) {
+            	   node.append(btn_edit);
+               } 
+           }
+          
           return node;
         }
       }).on('click.file.filetree', function(ev, el) {
@@ -409,6 +432,12 @@ $(document).ready(function() {
   //        $ubmenu.addClass('hidden');
           $main.off().html(data);
         });
+        
+        if(elem.data('extension').toLowerCase() == 'efwsr'){
+      	  window.DashboardGlobals.folderpath =  elem.data('reportdirectory');
+      	  window.DashboardGlobals.file = elem.data('reportfile');
+      	}
+        
         return ev.preventDefault();
       }).on('click.folder.filetree', function(ev, el) {
         $(this).filetree('toggle', ev.target);
@@ -435,7 +464,46 @@ $(document).ready(function() {
           }
         });
         return e.stopPropagation();
-      }).on('click', '.scd-btn', function(e) {
+      }).on('click', '.edit-desc', function(e) {
+    	  
+    	  var btn = $(e.target);
+	      var t = btn.siblings('a').eq(0);
+	      
+	     
+	      bootbox.prompt({
+	    	  title: "You can edit the description here",
+	    	  value: t.data('reportdesc'),
+	    	  callback: function(result) {
+	    		  
+	    		  if(t.data('extension')=="efwfav")
+	        	  {
+	        		  $.post(window.DashboardGlobals.saveReport, {
+	        	          reportDesc:result,
+	            	  	  reportDirectory: t.data('path').replace(t.data('name'), ''),
+	        	          reportFile: t.data('name'),
+	        	          operation: 'update',
+	        	          location:"DataQualityReport/Favourites",
+	        	          flagIsFav:"true"
+	                  });
+	        	  }
+	        	  else
+	        	  {
+		              $.post(window.DashboardGlobals.saveReport, {
+		    	          reportDesc:result,
+		        	  	  reportDirectory: t.data('path').replace(t.data('name'), ''),
+		    	          reportFile: t.data('name'),
+		    	          operation: 'update',
+		    	          location:"DataQualityReport/My Library/Report Templates - Data Quality",
+		    	          flagIsFav:"false"
+		              });
+	        	  }
+	    	  }
+	    	});
+	      	$(document).ready(function(){
+	      		$('.bootbox-form').find('input').addClass('.maximum-char').attr('maxlength','100');
+	      	});
+          return e.stopPropagation();
+        }).on('click', '.scd-btn', function(e) {
         var btn, t;
         btn = $(e.target);
         t = btn.siblings('a').eq(0);
@@ -877,10 +945,32 @@ $(document).ready(function() {
         return renList.html('');
       });
     }
+    else if (action === 'editDesc') {
+        renList = $fsActionModal.find('#editDesc');
+        oldNames = $(checked).map(function(i, e) {
+          if ($(e).data('type') === 'folder') {
+            return $(e).data('name');
+          } else {
+            if (isTable) {
+              return $(e).data('resultname');
+            } else {
+              return $(e).data('title');
+            }
+          }
+        }).get();
+        for (_j = 0, _len = oldNames.length; _j < _len; _j++) {
+          name = oldNames[_j];
+          renList.append("<tr><td>" + name + "</td><td><input type=\"text\" class=\"form-control\" value=\"" + name + "\"></td></tr>");
+        }
+        $fsActionModal.one('hidden.bs.modal', function() {
+          return renList.html('');
+        });
+      }
     $fsActionModal.addClass(action).find('.modal-title').text(text).end().modal('show').one('hidden.bs.modal', function() {
       $fsActionModal.removeClass(action);
       return $(document).off('keydown');
     });
+    
     $(document).on('keydown', function(e) {
       if (e.keyCode === 13) {
         $('#fs-actions-form--submit').click();
@@ -921,6 +1011,19 @@ $(document).ready(function() {
             data.source[i] = [data.source[i], name];
           }
         },
+        "editDesc": function() {
+            var newDesc, _k, _len1;
+            newDesc = $('#editDesc').find('input[type=text]').map(function(i, e) {
+              return $(e).val();
+            }).get();
+            if (newDesc.length !== data.source.length) {
+              return false;
+            }
+            for (i = _k = 0, _len1 = newDesc.length; _k < _len1; i = ++_k) {
+              desc = newDesc[i];
+              data.source[i] = [data.source[i], desc];
+            }
+          },
         "move": function() {
           data.destination = isTable ? $('#move-tree').find('input:checked').data('path') : $('#move-tree').find('.is-selected > a').data('path');
         },
