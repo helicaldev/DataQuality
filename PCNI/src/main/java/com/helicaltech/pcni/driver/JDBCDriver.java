@@ -1,7 +1,7 @@
 package com.helicaltech.pcni.driver;
 
-//import com.helicaltech.pcni.resourceloader.EFWDQueryProcessor;
 import com.helicaltech.pcni.singleton.ApplicationProperties;
+import oracle.jdbc.OracleTypes;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.slf4j.Logger;
@@ -41,17 +41,33 @@ public class JDBCDriver {
 	public JSONObject getJSONData(Connection connection, String query, ApplicationProperties appProp) {
 
 		logger.debug(" Inside JDBC DRiver Object **************** "+query);
-		//EFWDQueryProcessor queryProcessor = new EFWDQueryProcessor();
 		
 			Statement statement = null;
+			CallableStatement callableStatement = null;
 			ResultSet resultSet = null;
 			ResultSetMetaData metaData;
 			JSONArray jsonArray;
-//			JSONArray errorJsonArray = null;
 			JSONObject jasonObject;
 			try {
-				statement = connection.createStatement();
-				resultSet = statement.executeQuery(query);
+				logger.debug(" Inside JDBC DRiver Object **************** " + query);
+
+				if(query.startsWith("{"))
+				{
+				
+					/* statement = connection.createStatement(); */
+					callableStatement = connection.prepareCall(query);
+					callableStatement.registerOutParameter(1, OracleTypes.CURSOR);
+					logger.debug("Inside registerOutParameter Object " + query);
+					callableStatement.execute();
+					logger.debug("callable stmt executed!!! ");
+					resultSet = (ResultSet) callableStatement.getObject(1);
+				}
+				else
+				{
+					statement = connection.createStatement();
+					resultSet = statement.executeQuery(query);
+				}
+
 				metaData = resultSet.getMetaData();
 
 				jsonArray = new JSONArray();
@@ -85,8 +101,6 @@ public class JDBCDriver {
 				response.accumulate("metadata", jsonArray);
 			} catch (SQLException e) {
 				logger.error("SQL Exception has occurred", e);
-//				errorJsonArray.add("No Data Available");
-//				response.accumulate("data", errorJsonArray);
 				e.printStackTrace();
 			} finally {
 				try {
@@ -100,6 +114,10 @@ public class JDBCDriver {
 
 					if (resultSet != null) {
 						resultSet.close();
+					}
+					
+					if (callableStatement != null) {
+						callableStatement.close();
 					}
 				} catch (SQLException e) {
 					logger.error("SQL Exception has occurred", e);
