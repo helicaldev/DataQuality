@@ -188,15 +188,24 @@ $(document).ready(function() {
     }
   };
   $.getPrint = function(format) {
-    var base, data;
+    var base, data,dir,filename;
     base = "<base href=\"" + window.location.protocol + "//" + window.location.host + window.DashboardGlobals.baseUrl + "\">";
     data = $('html').clone().find('script').remove().end().find('nav').remove().end().find('#dashboardCanvas').removeClass('dashboardCanvas').end().find('head').prepend(base).end().html();
     data = encodeURIComponent(Base64.encode('<html>' + data + '</html>'));
+    
+    if(window.DashboardGlobals.extension.toLowerCase() == 'efwsr'){
+    	dir=window.DashboardGlobals.efwsrdirectory;
+    	filename=window.DashboardGlobals.efwsrfile;
+    }else{
+    	dir=window.DashboardGlobals.folderpath;
+    	filename=window.DashboardGlobals.file;
+    }
+    
     return $.download(window.DashboardGlobals.reportDownload, {
       xml: data,
       format: format,
-      dir: window.DashboardGlobals.folderpath,
-      filename: window.DashboardGlobals.file,
+      dir: dir,
+      filename: filename,
       reportType: window.DashboardGlobals.extension,
       resultDirectory: window.DashboardGlobals.savePath,
       reportNameParam: window.DashboardGlobals.fileTitle
@@ -416,6 +425,8 @@ $(document).ready(function() {
         window.DashboardGlobals.extension = elem.data('extension');
         window.DashboardGlobals.fileTitle = elem.data('title');
         window.DashboardGlobals.fileIsFavourite = false;
+        window.DashboardGlobals.efwsrdirectory =  null;
+        window.DashboardGlobals.efwsrfile = null;
         if (id === 'favourites' || (elem.siblings('button.fav-btn').length > 0 && elem.siblings('button.fav-btn').eq(0).hasClass('fa-star'))) {
           window.DashboardGlobals.fileIsFavourite = true;
         }
@@ -436,7 +447,11 @@ $(document).ready(function() {
         if(elem.data('extension').toLowerCase() == 'efwsr'){
       	  window.DashboardGlobals.folderpath =  elem.data('reportdirectory');
       	  window.DashboardGlobals.file = elem.data('reportfile');
-      	}
+            //window.DashboardGlobals.reportdirectory =  elem.data('reportdirectory'); //vivek's code
+            //window.DashboardGlobals.reportfile = elem.data('reportfile'); //vivek's code
+	      	window.DashboardGlobals.efwsrdirectory = elem.data('path').replace(elem.data('name'), ''),
+	      	window.DashboardGlobals.efwsrfile = elem.data('name');
+	    }
         
         return ev.preventDefault();
       }).on('click.folder.filetree', function(ev, el) {
@@ -628,11 +643,14 @@ $(document).ready(function() {
         window.DashboardGlobals.folderpath = elem.data('path');
         window.DashboardGlobals.file = elem.data('name');
         window.DashboardGlobals.extension = elem.data('extension');
+        //window.DashboardGlobals.extension = "efw";
         window.DashboardGlobals.fileTitle = elem.data('title');
         if (elem.data('type') === 'file') {
           window.DashboardGlobals.folderpath = window.DashboardGlobals.folderpath.replace(elem.data('name'), '').replace(/[\/\\]*$/g, '');
         }
-        xhr = $.post(window.DashboardGlobals.controllers[elem.data('extension').toLowerCase()], {
+        xhr = $.post(window.DashboardGlobals.controllers[elem.data('extension').toLowerCase()]
+        //xhr = $.post(window.DashboardGlobals.controllers.efw
+        , {
           dir: window.DashboardGlobals.folderpath,
           file: elem.data('name')
         });
