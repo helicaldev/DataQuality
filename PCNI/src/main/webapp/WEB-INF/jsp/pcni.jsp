@@ -1,5 +1,4 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
-<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -31,8 +30,6 @@
                         updateEFWTemplate: baseUrl + "updateEFWTemplate.html",
                         sessionUserName: "${sessionScope.user}",
                         sessionUserRoles: "${sessionScope.Roles}",
-                        /*sessionUserEmail: "${sessionScope.SPRING_SECURITY_CONTEXT.authentication.principal.emailAddress}",
-                        sessionUserOrganization : "${sessionScope.SPRING_SECURITY_CONTEXT.authentication.principal.org_name}", */
                         controllers :{
                             efw : baseUrl + "getEFWSolution.html",
                             efwsr : baseUrl + "executeSavedReport.html",
@@ -467,7 +464,7 @@
                 <div class="clearfix">
                     <a href="./#!/saved-reports/" class="home-link">
                         <span class="fa fa-3x fa-archive pull-left"></span>
-                        <h4> Saved Reports <br><small>List of all save dreports</small></h4>
+                        <h4> Saved Reports <br><small>List of all saved reports</small></h4>
                     </a>
                 </div>
             </div>
@@ -536,12 +533,14 @@
 
      <div class="footer" style="position:fixed; bottom:0px;width:100%;background-color:#cbe8ba;color:black;">
      	<div class="container">
-    	<script>var version = ${properties.versionNumber};</script>
-		<%
-			String version = "<script>document.writeln(version)</script>";
-			out.println("Version"+" "+version);
-		
-		%>
+     		<script>var version = ${properties.versionNumber};</script>
+     				
+     				<%
+						String version = "<script>document.writeln(version)</script>";
+						out.println("Version"+" "+ version);
+					
+					%>
+    	 
 		</div>
 	</div>
     
